@@ -5,18 +5,13 @@ package Text::Oyster;
 # This library is free software; you can redistribute it and/or
 # modify it under the same terms as Perl itself.
 
-# so our evals don't toss warnings;
-#BEGIN {
-#    $SIG{'__WARN__'} = sub { warn $_[0] if $WARNINGS }
-#}
-
 use strict;
 use Carp;
 use vars qw( @ISA $VERSION );
 use Parse::Tokens;
 @ISA = ('Parse::Tokens');
 
-$VERSION = 0.26;
+$VERSION = 0.27;
 
 sub new
 {
@@ -50,7 +45,8 @@ sub hash
 {
 	my( $self, $val ) = @_;
 	if ( $val ){
-		$self->_uninstall( $self->{hash} ) if $self->{hash};
+	#	$self->_uninstall( $self->{hash} ) if $self->{hash};
+	#	$self->cleanup( $self->package() );
 		$self->{hash} = $val;
 		$self->_install( $val );
 	}
@@ -70,6 +66,13 @@ sub inline_errs
 	my( $self, $val ) = @_;
 	$self->{inline_errs} = $val if $val;
 	return $self->{inline_errs};
+}
+
+sub autoclean
+{
+	my( $self, $val ) = @_;
+	$self->{autoclean} = $val if $val;
+	return $self->{autoclean};
 }
 
 sub file
@@ -107,12 +110,10 @@ sub token
 	my( $self, $token) = @_;
 	my $package = $self->package();
 	no strict 'vars';
-	$WARNINGS = 0;
 	$self->{parsed} .= eval qq{
 		package $package;
 		$token->[1];
 	};
-	$WARNINGS = 1;
 	if( $@ ){
 		carp $@;
 		$self->{parsed} .= $@ if $self->{inline_errs};
@@ -126,6 +127,34 @@ sub ether
 
 	my( $self, $text ) = @_;
 	$self->{parsed} .= $text;
+}
+
+sub cleanup
+{
+	# clean up the contents of our package
+	# called prior to the installation of a new hash
+
+	my( $self, $package ) = @_;
+
+	return if $package eq 'main';
+	no strict 'refs', 'vars';
+	*stash = *{"${package}::"};
+	for( keys %stash )
+	{
+		*alias = $stash{$_};
+		$alias = undef if( defined $alias );
+		@alias = () if( defined @alias );
+		%alias = () if( defined %alias )
+	}
+	use strict;
+	return 1;
+}
+
+sub DESTROY
+{
+	my( $self ) = @_;
+	$self->cleanup( $self->package() ) if $self->{autoclean};
+	return;
 }
 
 sub _install
@@ -154,7 +183,7 @@ sub _uninstall
 	no strict 'refs';
 	for( keys %{$hash} )
 	{
-		*{$package."::$_"} = \'';
+		*{$package."::$_"} = undef;
 	}
 	use strict;
 	return 1;
@@ -177,47 +206,28 @@ __END__
 
 =head1 NAME
 
-Perl::Hypotext - evaluate perl code embedded in text.
+Text::Oyster - evaluate perl code embedded in text.
 
 =head1 SYNOPSIS
 
-  use Perl::Hypotext;
+  use Text::Oyster;
 
-  # you can any argumnets at initialization
-  my $t = Perl::Hypotext->new({});
-
-  my $template = q{
-    Yo nombre es [- $name -].
-    I am [- $age -] years old.    	
-  };
-
-  # initialize a couple vars in package 'main'
-  my $name = 'Steve';
-  my $age  = 31;
-
-  # parse defaults to package 'main' (unless a hash has been loaded)
-  print $t->parse({
-      text	=> $text
+  my $o = new Text::Oyster ({
+      hash => {
+          name => 'Santa Claus',
+          age => 9000
+      },
+      text => q{
+          Yo nombre es [- $name -].
+          I am [- $age -] years old.    	
+      }
   });
 
-  # or...use a hash ( slower, but MUCH easier to work with )
-
-  my %hash = (
-    name => 'Steve',
-    age  => 31
-  );
-
-  print $t->parse({
-      text	=> $text,
-      hash	=> \%hash
-  });
-
-  # ...or however you like it, as long as text and hash or package name 
-  # is loaded before or when parse() is called.
+  print $o->parse();
 
 =head1 DESCRIPTION
 
-C<Perl::Hypotext> a module for evaluating perl embedded in text. The perl can be evaluated under a specified package, or under a package built from a provided hash.
+C<Text::Oyster> a module for evaluating perl embedded in text. The perl can be evaluated under a specified package, or under a package built from a provided hash.
 
 =head1 FUNCTIONS
 
@@ -225,7 +235,7 @@ C<Perl::Hypotext> a module for evaluating perl embedded in text. The perl can be
 
 =item new()
 
-Initializes a Perl::Hypotext object. Pass parameter as a hash reference. Optionally pass: delimiters, hash, package, text, file, inline_errs (see descriptions below).
+Initializes an Oyster object. Pass parameter as a hash reference. Optionally pass: delimiters, hash, package, text, file, inline_errs (see descriptions below).
 
 =item hash()
 
@@ -255,10 +265,19 @@ Runs the parser. Optionally accepts parameters as specified for new();.
 
 Returns the fully parsed and evaluated text.
 
+=item cleanup();
+
+Cleanup namespace (excludes 'main').
+
+=item autoclean();
+
+Should Oyster cleanup at DESTROY?
+
 =back
 
 =head1 CHANGES
 
+0.27 - Added package data cleanup method, optional autocleaning at DESTROY.
 0.26 - Another name change...just cuz.
 0.26 - Bug Fix: Internal package cleanup now works correctly when using hashes. REALLY!
 0.25 - Name Change: Was stomping on a Template Toolkit module. Doh!
