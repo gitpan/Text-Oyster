@@ -11,10 +11,14 @@ To install the module:
 
 Changes
 
-0.27 - Added package cleanup method for even better package cleaning, package cleanup automation option.
-0.26 - Another Name Change...just cuz.
-0.26 - Bug Fix: Internal package clean now works correctly.
-0.25 - Name Change: Was stomping on a Template Toolkit module. Doh!
+0.29
+
+	Allow assignment of hash elements with undef values.
+	Uses evaluation package name correctly.
+
+0.27
+
+	Added package data cleanup method, optional autocleaning at DESTROY.
 
 --
 Steve McKay

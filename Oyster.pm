@@ -1,25 +1,28 @@
 package Text::Oyster;
 
+# $Id: Oyster.pm,v 1.7 2001/11/28 01:00:15 steve Exp $
+
 # Copyright 2000-2001 by Steve McKay. All rights reserved.
-#
 # This library is free software; you can redistribute it and/or
 # modify it under the same terms as Perl itself.
 
 use strict;
 use Carp;
 use vars qw( @ISA $VERSION );
+# can we convert to use the base pragma yet?
 use Parse::Tokens;
 @ISA = ('Parse::Tokens');
 
-$VERSION = 0.27;
+$VERSION = 0.29;
 
 sub new
 {
 	my( $class, $params ) = @_;
 	my $self = $class->SUPER::new;
 	$self->delimiters( ['<?','?>'] );	# default delimiters
+	$self->package( 'Safe' );			# default package
 	$self->init( $params );
-	$self;
+	return $self;
 }
 
 sub init
@@ -45,34 +48,33 @@ sub hash
 {
 	my( $self, $val ) = @_;
 	if ( $val ){
-	#	$self->_uninstall( $self->{hash} ) if $self->{hash};
+	#	$self->_uninstall( $self->{'hash'} ) if $self->{'hash'};
 	#	$self->cleanup( $self->package() );
-		$self->{hash} = $val;
+		$self->{'hash'} = $val;
 		$self->_install( $val );
 	}
-	return $self->{hash};
+	return $self->{'hash'};
 }
 
 sub package
 {
 	my( $self, $val ) = @_;
-	$self->{package} = $val if $val;
-	# default to package main
-	return $self->{package} || 'Safe';
+	$self->{'package'} = $val if $val;
+	return $self->{'package'};
 }
 
 sub inline_errs
 {
 	my( $self, $val ) = @_;
-	$self->{inline_errs} = $val if $val;
-	return $self->{inline_errs};
+	$self->{'inline_errs'} = $val if $val;
+	return $self->{'inline_errs'};
 }
 
 sub autoclean
 {
 	my( $self, $val ) = @_;
-	$self->{autoclean} = $val if $val;
-	return $self->{autoclean};
+	$self->{'autoclean'} = $val if $val;
+	return $self->{'autoclean'};
 }
 
 sub file
@@ -80,43 +82,43 @@ sub file
 	my( $self, $val ) = @_;
 	if( $val )
 	{
-		$self->{file} = $val;
-		$self->text( &_get_file( $self->{file} ) );
+		$self->{'file'} = $val;
+		# always use the text accessor as it handles cache flushing
+		$self->text( &_get_file( $self->{'file'} ) );
 	}
-	return $self->{file};
+	return $self->{'file'};
 }
 
 sub parsed
 {
 	my( $self ) = @_;
-	return $self->{parsed};
+	return $self->{'parsed'};
 }
 
 sub parse
 {
 	# overide SUPER::parse
 	my( $self, $params ) = @_;
-	$self->{parsed} = undef;
+	$self->{'parsed'} = undef;
 	$self->init( $params );
-	return unless $self->{text};
+	return unless $self->text();
 	$self->SUPER::parse();
-	return $self->{parsed};
+	return $self->{'parsed'};
 }
 
 sub token
 {
 	# overide SUPER::token
-
 	my( $self, $token) = @_;
 	my $package = $self->package();
 	no strict 'vars';
-	$self->{parsed} .= eval qq{
+	$self->{'parsed'} .= eval qq{
 		package $package;
 		$token->[1];
 	};
 	if( $@ ){
 		carp $@;
-		$self->{parsed} .= $@ if $self->{inline_errs};
+		$self->{'parsed'} .= $@ if $self->inline_errs();
 	}
 	use strict;
 }
@@ -126,7 +128,7 @@ sub ether
 	# overide SUPER::ether
 
 	my( $self, $text ) = @_;
-	$self->{parsed} .= $text;
+	$self->{'parsed'} .= $text;
 }
 
 sub cleanup
@@ -153,7 +155,7 @@ sub cleanup
 sub DESTROY
 {
 	my( $self ) = @_;
-	$self->cleanup( $self->package() ) if $self->{autoclean};
+	$self->cleanup( $self->package() ) if $self->autoclean();
 	return;
 }
 
@@ -166,7 +168,9 @@ sub _install
 	no strict 'refs';
 	for( keys %{$hash} )
 	{
-		next unless defined $hash->{$_};
+	# why if defined?
+	#	next unless defined $hash->{$_};
+		warn "$_";
 		*{$package."::$_"} = \$hash->{$_};
 	}
 	use strict;
@@ -217,9 +221,10 @@ Text::Oyster - evaluate perl code embedded in text.
           name => 'Santa Claus',
           age => 9000
       },
+      delimiters => [['<?','?>']],
       text => q{
-          Yo nombre es [- $name -].
-          I am [- $age -] years old.    	
+          Yo nombre es <? $name ?>.
+          I am <? $age ?> years old.    	
       }
   });
 
@@ -227,9 +232,9 @@ Text::Oyster - evaluate perl code embedded in text.
 
 =head1 DESCRIPTION
 
-C<Text::Oyster> a module for evaluating perl embedded in text. The perl can be evaluated under a specified package, or under a package built from a provided hash.
+C<Text::Oyster> is a module for evaluating perl embedded in text.
 
-=head1 FUNCTIONS
+=head1 METHODS
 
 =over 10
 
@@ -267,7 +272,7 @@ Returns the fully parsed and evaluated text.
 
 =item cleanup();
 
-Cleanup namespace (excludes 'main').
+Cleanup namespace (excludes 'main'). "Cleanup" mean delete all variables contained therein.
 
 =item autoclean();
 
@@ -277,14 +282,19 @@ Should Oyster cleanup at DESTROY?
 
 =head1 CHANGES
 
-0.27 - Added package data cleanup method, optional autocleaning at DESTROY.
-0.26 - Another name change...just cuz.
-0.26 - Bug Fix: Internal package cleanup now works correctly when using hashes. REALLY!
-0.25 - Name Change: Was stomping on a Template Toolkit module. Doh!
-0.24 - Bug Fix: Internal package cleanup now works correctly when using hashes.
-0.23 - Can now specify a package underwhich to install a hash (was explicitly 'Safe'). This also means that the package name must be set prior to or at the time of installation of a hash, or not at all.
+=over 10
 
-Changed default delimiters to '<?' and '?>' (was '[-' and '-]').
+=item 0.29
+
+	Allow assignment of hash elements with undef values.
+	Uses evaluation package name correctly.
+
+=item 0.27
+
+	Added package data cleanup method, optional autocleaning at DESTROY.
+
+=back
+
 
 =head1 AUTHOR
 
@@ -302,3 +312,4 @@ modify it under the same terms as Perl itself.
 C<Parse::Tokens>, C<Text::Template>, C<Text::SimpleTemplate>
 
 =cut
+
