@@ -1,6 +1,6 @@
 package Text::Oyster;
 
-# $Id: Oyster.pm,v 1.9 2003/06/27 03:42:13 steve Exp $
+# $Id: Oyster.pm,v 1.12 2003/06/27 15:38:38 steve Exp $
 
 # Copyright 2000-2001 by Steve McKay. All rights reserved.
 # This library is free software; you can redistribute it and/or
@@ -13,7 +13,7 @@ use vars qw( @ISA $VERSION );
 use Parse::Tokens;
 @ISA = ('Parse::Tokens');
 
-$VERSION = 0.31;
+$VERSION = 0.32;
 
 sub new
 {
@@ -218,12 +218,12 @@ Text::Oyster - evaluate perl code embedded in text.
   my $o = new Text::Oyster ({
       hash => {
           name => 'Santa Claus',
-          age => 9000
+          num_presents => 9000
       },
       delimiters => [['<?','?>']],
       text => q{
           Me llamo <? $name ?>.
-          Tengo <? $age ?> anos.
+          Tengo <? $num_presents ?> regalos.
       }
   });
 
@@ -283,6 +283,9 @@ Should Oyster cleanup at DESTROY?
 
 =over 10
 
+=item 0.31
+
+Corrected my dorky spanish...ONE MORE TIME!
 =item 0.31
 
 Fixed the pod CHANGES.
