@@ -1,6 +1,6 @@
 package Text::Oyster;
 
-# $Id: Oyster.pm,v 1.8 2001/11/28 18:28:11 steve Exp $
+# $Id: Oyster.pm,v 1.9 2003/06/27 03:42:13 steve Exp $
 
 # Copyright 2000-2001 by Steve McKay. All rights reserved.
 # This library is free software; you can redistribute it and/or
@@ -13,7 +13,7 @@ use vars qw( @ISA $VERSION );
 use Parse::Tokens;
 @ISA = ('Parse::Tokens');
 
-$VERSION = 0.30;
+$VERSION = 0.31;
 
 sub new
 {
@@ -222,8 +222,8 @@ Text::Oyster - evaluate perl code embedded in text.
       },
       delimiters => [['<?','?>']],
       text => q{
-          Yo nombre es <? $name ?>.
-          I am <? $age ?> years old.    	
+          Me llamo <? $name ?>.
+          Tengo <? $age ?> anos.
       }
   });
 
@@ -283,19 +283,24 @@ Should Oyster cleanup at DESTROY?
 
 =over 10
 
+=item 0.31
+
+Fixed the pod CHANGES.
+Corrected my really bad spanish in the demo code to be significantly less bad(er). Thanks Belden Lyman.
+
 =item 0.30
 
-	Removed an errant warn statement.
-	Build distribution using 'make dist'
+Removed an errant warn statement.
+Build distribution using 'make dist'
 
 =item 0.29
 
-	Allow assignment of hash elements with undef values.
-	Uses evaluation package name correctly.
+Allow assignment of hash elements with undef values.
+Uses evaluation package name correctly.
 
 =item 0.27
 
-	Added package data cleanup method, optional autocleaning at DESTROY.
+Added package data cleanup method, optional autocleaning at DESTROY.
 
 =back
 
