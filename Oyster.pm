@@ -1,6 +1,6 @@
 package Text::Oyster;
 
-# $Id: Oyster.pm,v 1.7 2001/11/28 01:00:15 steve Exp $
+# $Id: Oyster.pm,v 1.8 2001/11/28 18:28:11 steve Exp $
 
 # Copyright 2000-2001 by Steve McKay. All rights reserved.
 # This library is free software; you can redistribute it and/or
@@ -13,7 +13,7 @@ use vars qw( @ISA $VERSION );
 use Parse::Tokens;
 @ISA = ('Parse::Tokens');
 
-$VERSION = 0.29;
+$VERSION = 0.30;
 
 sub new
 {
@@ -170,7 +170,6 @@ sub _install
 	{
 	# why if defined?
 	#	next unless defined $hash->{$_};
-		warn "$_";
 		*{$package."::$_"} = \$hash->{$_};
 	}
 	use strict;
@@ -283,6 +282,11 @@ Should Oyster cleanup at DESTROY?
 =head1 CHANGES
 
 =over 10
+
+=item 0.30
+
+	Removed an errant warn statement.
+	Build distribution using 'make dist'
 
 =item 0.29
 

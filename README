@@ -11,6 +11,11 @@ To install the module:
 
 Changes
 
+0.30
+
+	Removed an errant warn statement.
+	Build distribution using 'make dist'
+
 0.29
 
 	Allow assignment of hash elements with undef values.
